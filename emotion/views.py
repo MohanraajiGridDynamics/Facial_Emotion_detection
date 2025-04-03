@@ -1,9 +1,10 @@
 import cv2
 import numpy as np
+import time
 import base64
 import json
 import keras
-from django.http import JsonResponse
+from django.http import JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
 from io import BytesIO
 from PIL import Image
@@ -38,6 +39,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "emotion_model.hdf5")
 #MODEL_PATH = os.path.join("E:/Django/Face/emotion_recognition/emotion/emotion_model.hdf5")
 
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
 if not os.path.exists(MODEL_PATH):
     raise FileNotFoundError(f"❌ Model file not found: {MODEL_PATH}")
 
@@ -57,9 +60,53 @@ def home(request):
     return render(request, 'index.html')
 
 
+def detect_emotion_live():
+    cap = cv2.VideoCapture(0)  # Open the webcam
+    last_prediction_time = 0
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # Convert frame to grayscale for better detection
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5)
+
+        current_time = time.time()
+
+        if current_time - last_prediction_time >= 2:  # Process every 2 seconds
+            for (x, y, w, h) in faces:
+                face_roi = gray[y:y + h, x:x + w]
+                face_roi = cv2.resize(face_roi, (48, 48))  # Resize for the model
+                face_roi = np.expand_dims(face_roi, axis=0)
+                face_roi = np.expand_dims(face_roi, axis=-1)
+                face_roi = face_roi / 255.0  # Normalize
+
+                prediction = model.predict(face_roi)
+                emotion = emotion_labels[np.argmax(prediction)]
+                print(f"Detected Emotion: {emotion}")
+
+            last_prediction_time = current_time
+
+        # Show the live feed
+        cv2.imshow("Real-Time Emotion Detection", frame)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):  # Press 'q' to exit
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+# Django view to serve the video stream
+def video_feed(request):
+    return StreamingHttpResponse(detect_emotion_live(), content_type="multipart/x-mixed-replace;boundary=frame")
+
+
 def detect_emotion(request):
     print("📸 Capturing image...")
-    
+
     cap = cv2.VideoCapture(0)
     ret, frame = cap.read()
     cap.release()
@@ -91,7 +138,7 @@ def detect_emotion(request):
 
         print(f"🎭 Predicted Emotion: {emotion_label}")
         return JsonResponse({'emotion': emotion_label})
-    
+
     print("⚠️ No valid face found in loop")
     return JsonResponse({'emotion': 'Unknown'})
 
