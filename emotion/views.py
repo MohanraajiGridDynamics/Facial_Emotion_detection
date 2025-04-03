@@ -35,8 +35,8 @@ emotions = ['Angry', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise']
 # MODEL_PATH = "emotion/emotion_model.hdf5"  # Make sure this is correct
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  
-# MODEL_PATH = os.path.join(BASE_DIR, "emotion", "emotion_model.hdf5")
-MODEL_PATH = os.path.join("E:/Django/Face/emotion_recognition/emotion/emotion_model.hdf5")
+MODEL_PATH = os.path.join(BASE_DIR, "emotion_model.hdf5")
+#MODEL_PATH = os.path.join("E:/Django/Face/emotion_recognition/emotion/emotion_model.hdf5")
 
 if not os.path.exists(MODEL_PATH):
     raise FileNotFoundError(f"❌ Model file not found: {MODEL_PATH}")
