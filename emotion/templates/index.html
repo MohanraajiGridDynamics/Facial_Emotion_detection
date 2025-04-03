@@ -15,8 +15,14 @@
 <!--    <p id="emotion-output">Detected Emotion: </p>-->
 
     <video id="videoStream" autoplay></video>
-<div id="emotionOutput">Detecting...</div>
+    <div id="emotionOutput">Detecting...</div>
     <h2>Number of Faces Detected: <span id="face-count">0</span></h2>
+
+    <h1>Real-Time Head & Eye Movement Monitoring</h1>
+    <div>
+        <h2>Head Movement: <span id="head-direction">N/A</span></h2>
+        <h2>Eye Movements: <span id="eye-directions">N/A</span></h2>
+    </div>
 
 <script>
         function fetchEmotion() {
@@ -70,6 +76,19 @@
 
         // Update face count every 2 seconds
         setInterval(updateFaceCount, 2000);
+
+         function updateMovement() {
+            fetch("{% url 'monitor_movement' %}")
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("head-direction").innerText = data.head_direction;
+                document.getElementById("eye-directions").innerText = data.eye_directions.join(", ");
+            })
+            .catch(error => console.error("Error fetching movement:", error));
+        }
+
+        // Update every 2 seconds
+        setInterval(updateMovement, 2000);
     </script>
 </body>
 </html>
