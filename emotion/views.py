@@ -28,7 +28,9 @@ model = keras.models.load_model("emotion/emotion_model_fixed.hdf5")
 
 # Load Pretrained Emotion Detection Model (Example: FER)
 # model = keras.models.load_model('emotion/emotion_model.hdf5')
-emotion_labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise']
+#emotion_labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise']
+
+emotions = ['Angry', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise']
 
 # MODEL_PATH = "emotion/emotion_model.hdf5"  # Make sure this is correct
 
@@ -54,20 +56,90 @@ except Exception as e:
 def home(request):
     return render(request, 'index.html')
 
+
 def detect_emotion(request):
-    if request.method == "POST":
-        data = json.loads(request.body)
-        image_data = data.get("image").split(",")[1]
-        image_bytes = base64.b64decode(image_data)
+    print("📸 Capturing image...")
+    
+    cap = cv2.VideoCapture(0)
+    ret, frame = cap.read()
+    cap.release()
+
+    if not ret:
+        print("❌ Failed to capture image")
+        return JsonResponse({'error': 'Failed to capture image'})
+
+    # Convert image to grayscale
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5)
+
+    if len(faces) == 0:
+        print("⚠️ No face detected")
+        return JsonResponse({'emotion': 'No face detected'})
+
+    for (x, y, w, h) in faces:
+        roi_gray = gray[y:y + h, x:x + w]
+        roi_gray = cv2.resize(roi_gray, (48, 48))  # Resize for model
+        roi_gray = roi_gray / 255.0  # Normalize
+        roi_gray = np.expand_dims(roi_gray, axis=0)
+        roi_gray = np.expand_dims(roi_gray, axis=-1)
+
+        # Predict Emotion
+        prediction = model.predict(roi_gray)
+        emotion_label = emotions[np.argmax(prediction)]
+
+        print(f"🎭 Predicted Emotion: {emotion_label}")
+        return JsonResponse({'emotion': emotion_label})
+    
+    print("⚠️ No valid face found in loop")
+    return JsonResponse({'emotion': 'Unknown'})
+
+
+# def detect_emotion(request):
+#     cap = cv2.VideoCapture(0)
+#     ret, frame = cap.read()
+#     cap.release()
+
+#     if not ret:
+#         return JsonResponse({'error': 'Failed to capture image'})
+
+#     # Convert image to grayscale
+#     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+#     face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+#     faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5)
+
+#     if len(faces) == 0:
+#         return JsonResponse({'emotion': 'No face detected'})
+
+#     for (x, y, w, h) in faces:
+#         roi_gray = gray[y:y + h, x:x + w]
+#         roi_gray = cv2.resize(roi_gray, (48, 48))  # Resize to match model input
+#         roi_gray = roi_gray / 255.0  # Normalize
+#         roi_gray = np.expand_dims(roi_gray, axis=0)
+#         roi_gray = np.expand_dims(roi_gray, axis=-1)
+
+#         # Predict Emotion
+#         prediction = model.predict(roi_gray)
+#         emotion_label = emotions[np.argmax(prediction)]
+
+#         return JsonResponse({'emotion': emotion_label})
+
+# def detect_emotion(request):
+#     if request.method == "POST":
+#         data = json.loads(request.body)
+#         image_data = data.get("image").split(",")[1]
+#         image_bytes = base64.b64decode(image_data)
         
-        img = Image.open(BytesIO(image_bytes)).convert('L')  # Convert to grayscale
-        img = img.resize((48, 48))  # Resize for the model
-        img = np.array(img) / 255.0  # Normalize
-        img = np.expand_dims(img, axis=0)
-        img = np.expand_dims(img, axis=-1)
+#         img = Image.open(BytesIO(image_bytes)).convert('L')  # Convert to grayscale
+#         img = img.resize((48, 48))  # Resize for the model
+#         img = np.array(img) / 255.0  # Normalize
+#         img = np.expand_dims(img, axis=0)
+#         img = np.expand_dims(img, axis=-1)
 
-        prediction = model.predict(img)
-        emotion = emotion_labels[np.argmax(prediction)]
+#         prediction = model.predict(img)
+#         emotion = emotion_labels[np.argmax(prediction)]
 
-        return JsonResponse({"emotion": emotion})
+#         return JsonResponse({"emotion": emotion})
 

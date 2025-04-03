@@ -3,5 +3,5 @@ from .views import home, detect_emotion
 
 urlpatterns = [
     path('', home, name='home'),
-    path('detect/', detect_emotion, name='detect_emotion'),
+    path('detect_emotion/', detect_emotion, name='detect_emotion'),
 ]

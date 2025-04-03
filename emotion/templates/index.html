@@ -11,6 +11,9 @@
     <button onclick="capture()">Capture</button>
     <canvas id="canvas" width="640" height="480"></canvas>
     <img id="photo" style="display:none">
+    <button onclick="captureAndDetect()">Capture & Detect Emotion</button>
+    <p id="emotion-output">Detected Emotion: </p>
+
     <script>
         let video = document.getElementById('video');
         navigator.mediaDevices.getUserMedia({ video: true })
@@ -29,6 +32,16 @@
             .then(response => response.json())
             .then(data => alert('Emotion: ' + data.emotion));
         }
+
+        function captureAndDetect() {
+            fetch('/detect_emotion/')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('emotion-output').innerText = "Detected Emotion: " + data.emotion;
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
     </script>
 </body>
 </html>
