@@ -25,14 +25,22 @@
     </div>
 
 <script>
-        function fetchEmotion() {
-            fetch("/detect_emotion/")  // Django route
-                .then(response => response.text())
-                .then(emotion => {
-                    document.getElementById("emotionOutput").innerText = emotion;
-                })
-                .catch(error => console.error("Error fetching emotion:", error));
-        }
+
+    function fetchEmotion() {
+    fetch("/detect_emotion/")
+        .then(response => {
+            if (!response.ok || !response.headers.get("content-type")?.includes("application/json")) {
+                throw new Error("Invalid JSON response");
+            }
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById("emotionOutput").innerText = data.emotion;
+        })
+        .catch(error => {
+            console.error("Error fetching emotion:", error);
+        });
+}
 
         // Fetch emotion every 2 seconds
         setInterval(fetchEmotion, 2000);

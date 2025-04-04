@@ -11,6 +11,9 @@ import time
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "emotion_model_fixed.hdf5")
 
+cap = None
+
+
 if not os.path.exists(MODEL_PATH):
     raise FileNotFoundError(f"❌ Model file not found: {MODEL_PATH}")
 
@@ -32,6 +35,38 @@ def home(request):
     Render the main page.
     """
     return render(request, 'index.html')
+
+# def detect_emotion(request):
+#     if request.method == 'GET':
+#         global cap
+#         if cap is None:
+#             cap = cv2.VideoCapture(0)
+#         ret, frame = cap.read()
+#
+#         if not ret or frame is None:
+#             return JsonResponse({'emotion': 'Camera Error'}, status=500)
+#
+#         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+#
+#         faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5)
+#
+#         # If no face, return neutral or nothing
+#         if len(faces) == 0:
+#             return JsonResponse({'emotion': 'No Face Detected'})
+#
+#         for (x, y, w, h) in faces:
+#             roi_gray = gray[y:y + h, x:x + w]
+#             roi_color = frame[y:y + h, x:x + w]
+#             final_image = cv2.resize(roi_color, (224, 224))
+#             final_image = np.expand_dims(final_image, axis=0)
+#             final_image = final_image / 255.0
+#             predictions = model.predict(final_image)
+#             emotion = CATEGORIES[np.argmax(predictions)]
+#
+#             return JsonResponse({'emotion': emotion})
+#
+#     return JsonResponse({'error': 'Invalid request'}, status=400)
+#
 
 
 def detect_emotion(request):
@@ -67,6 +102,8 @@ def detect_emotion(request):
         return JsonResponse({'emotion': emotion})
 
     return JsonResponse({'emotion': 'Unknown'})
+
+
 
 
 def count_faces(request):
@@ -172,12 +209,17 @@ def monitor_head_eye_movement(request):
             else:
                 eye_direction = f"{eye_vertical} {eye_horizontal}" if eye_vertical != "Center" else eye_horizontal
 
+            #eye_directions.append(eye_direction)
+            eye_directions.clear()
             eye_directions.append(eye_direction)
+
 
     result = {
         "head_direction": head_direction,
+       # "eye_directions": eye_directions
         "eye_directions": eye_directions
     }
     print("🔍 Head Movement:", head_direction)
+    #print("🔍 Eye Movement:", eye_directions)
     print("🔍 Eye Movement:", eye_directions)
     return JsonResponse(result)
