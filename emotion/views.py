@@ -1,19 +1,18 @@
 import cv2
 import numpy as np
 import os
+from django.core.files.storage import FileSystemStorage
 from django.http import JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
 from tensorflow.keras.models import load_model
-from tensorflow import keras
-import time
+import face_recognition
+from .face_match import run_face_match  # Assuming face_match.py is in the same directory
 
-# Define base directory and model path for your emotion model (unchanged)
+# Define base directory and model path for your emotion model
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "emotion_model_fixed.hdf5")
 
-cap = None
-
-
+# Load the emotion detection model
 if not os.path.exists(MODEL_PATH):
     raise FileNotFoundError(f"❌ Model file not found: {MODEL_PATH}")
 
@@ -23,11 +22,15 @@ try:
 except Exception as e:
     print(f"❌ Error loading model: {e}")
 
+# Emotion labels for prediction
 emotion_labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise']
 
-# Initialize Haar cascades
+# Initialize Haar cascades for face and eye detection
+#face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
+
+print("Cascade loaded:", face_cascade.empty())  # If True, it failed to load
 
 
 def home(request):
@@ -35,6 +38,28 @@ def home(request):
     Render the main page.
     """
     return render(request, 'index.html')
+
+
+def upload_image(request):
+    """
+    Handle the uploaded image, save it, and run face match and emotion detection.
+    """
+    if request.method == 'POST' and request.FILES['reference_image']:
+        uploaded_file = request.FILES['reference_image']
+
+        # Save the uploaded image to the file system
+        fs = FileSystemStorage()
+        filename = fs.save(uploaded_file.name, uploaded_file)
+        file_url = fs.url(filename)
+
+        # Run face match on the uploaded image
+        reference_image_path = os.path.join(fs.location, filename)
+        print(f"[INFO] Reference Image Path: {reference_image_path}")
+        run_face_match(reference_image_path)  # Face match logic here
+
+        return JsonResponse({'message': 'Face match started', 'file_url': file_url})
+
+    return render(request, 'upload_image.html')
 
 
 def detect_emotion(request):
@@ -70,8 +95,6 @@ def detect_emotion(request):
         return JsonResponse({'emotion': emotion})
 
     return JsonResponse({'emotion': 'Unknown'})
-
-
 
 
 def count_faces(request):
@@ -177,17 +200,13 @@ def monitor_head_eye_movement(request):
             else:
                 eye_direction = f"{eye_vertical} {eye_horizontal}" if eye_vertical != "Center" else eye_horizontal
 
-            #eye_directions.append(eye_direction)
             eye_directions.clear()
             eye_directions.append(eye_direction)
 
-
     result = {
         "head_direction": head_direction,
-       # "eye_directions": eye_directions
         "eye_directions": eye_directions
     }
     print("🔍 Head Movement:", head_direction)
-    #print("🔍 Eye Movement:", eye_directions)
     print("🔍 Eye Movement:", eye_directions)
     return JsonResponse(result)
