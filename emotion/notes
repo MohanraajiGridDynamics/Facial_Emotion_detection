@@ -1,0 +1,2 @@
+from emotion.face_match import run_face_match
+run_face_match("/Users/mmohanraaji/Documents/E/Images/test.jpg")
