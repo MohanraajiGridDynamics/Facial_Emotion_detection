@@ -1,9 +1,11 @@
 from django.urls import path
-from .views import home, detect_emotion, count_faces, monitor_head_eye_movement
+from . import views
 
 urlpatterns = [
-    path('', home, name='home'),
-    path('detect_emotion/', detect_emotion, name='detect_emotion'),
-    path('count_faces/', count_faces, name='count_faces'),
-    path('monitor_movement/', monitor_head_eye_movement, name='monitor_movement'),
+    path('', views.upload_and_run, name='home'),
+    path('video_feed/', views.video_feed, name='video_feed'),
+    path('face_count/', views.face_count_view, name='face_count'),
+    path('direction/', views.direction_view, name='direction'),
+    path('get_directions/', views.get_directions, name='get_directions'),
+
 ]

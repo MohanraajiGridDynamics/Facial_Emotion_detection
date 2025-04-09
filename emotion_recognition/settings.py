@@ -128,3 +128,6 @@ MODEL_PATH = "emotion/emotion_model.hdf5"  # Adjust the path if needed
 
 if not os.path.exists(MODEL_PATH):
     raise FileNotFoundError(f"Model file not found at {MODEL_PATH}. Check the file path.")
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

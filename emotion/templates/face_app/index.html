@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Facial Recognition Upload</title>
+    <script>
+        // 🧠 Fetch face count from server every second
+        function updateFaceCount() {
+            fetch('/face_count/')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('face-count').innerText = data.count;
+                })
+                .catch(error => console.error('Error fetching face count:', error));
+        }
+
+        // 💥 Run once DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            setInterval(updateFaceCount, 1000);  // Update every 1 second
+        });
+    </script>
+</head>
+<body>
+    <h1>Upload Reference Image</h1>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="file" name="image" required>
+        <button type="submit">Start Recognition</button>
+    </form>
+
+    <h2>Live Webcam Feed</h2>
+    <img src="{% url 'video_feed' %}" width="640" height="480">
+
+    <h3>👀 Faces Detected: <span id="face-count">0</span></h3>
+    <h3>🧭 Head Direction: <span id="face-direction">N/A</span></h3>
+    <h3>👁️ Eye Direction: <span id="eye-direction">N/A</span></h3>
+
+    <script>
+        function updateFaceCount() {
+        fetch('/face_count/')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('face-count').innerText = data.count;
+            })
+            .catch(error => console.error('Error fetching face count:', error));
+    }
+
+    function updateDirections() {
+        fetch('/get_directions/')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('face-direction').innerText = data.face_direction;
+                document.getElementById('eye-direction').innerText = data.eye_direction;
+            })
+            .catch(error => console.error('Error fetching directions:', error));
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        setInterval(updateFaceCount, 1000);      // Already present
+        setInterval(updateDirections, 1000);     // New 👁️
+    });
+    </script>
+</body>
+</html>
