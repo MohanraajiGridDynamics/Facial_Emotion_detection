@@ -30,6 +30,7 @@
     <h2>Live Webcam Feed</h2>
     <img src="{% url 'video_feed' %}" width="640" height="480">
 
+    <h3>😊 Detected Emotion: <span id="emotion">N/A</span></h3>
     <h3>👀 Faces Detected: <span id="face-count">0</span></h3>
     <h3>🧭 Head Direction: <span id="face-direction">N/A</span></h3>
     <h3>👁️ Eye Direction: <span id="eye-direction">N/A</span></h3>
@@ -58,6 +59,22 @@
         setInterval(updateFaceCount, 1000);      // Already present
         setInterval(updateDirections, 1000);     // New 👁️
     });
+
+        function updateEmotion() {
+    fetch('/get_emotion/')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('emotion').innerText = data.emotion;
+        })
+        .catch(error => console.error('Error fetching emotion:', error));
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    setInterval(updateFaceCount, 1000);
+    setInterval(updateDirections, 1000);
+    setInterval(updateEmotion, 1000);  // 💥 Emotion fetcher added
+});
+
     </script>
 </body>
 </html>

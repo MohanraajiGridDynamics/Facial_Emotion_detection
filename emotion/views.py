@@ -5,13 +5,15 @@ from django.http import StreamingHttpResponse, JsonResponse
 from django.shortcuts import render
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
+from deepface import DeepFace  # 🧠 New emotion detector
 import os
 
 from django.views.decorators.csrf import csrf_exempt
 
 reference_encoding = None
 face_count = 0
-latest_directions = {"face": "N/A", "eye": "N/A"}  # ✅ global, don't overwrite inside gen_frames
+latest_directions = {"face": "N/A", "eye": "N/A"}
+latest_emotion = "N/A"  # ✅ Global tracker
 
 
 def upload_and_run(request):
@@ -36,8 +38,20 @@ def upload_and_run(request):
     return render(request, 'face_app/index.html')
 
 
+def detect_emotion(face_roi):
+    emotion = "Unknown"
+    try:
+        if face_roi.size > 0:
+            analysis = DeepFace.analyze(face_roi, actions=['emotion'], enforce_detection=False)
+            emotion = analysis[0]['dominant_emotion']
+    except Exception as e:
+        print("Emotion detection error:", e)
+        emotion = "?"
+    return emotion
+
+
 def gen_frames():
-    global reference_encoding, face_count, latest_directions
+    global reference_encoding, face_count, latest_directions, latest_emotion
 
     cap = cv2.VideoCapture(0)
 
@@ -62,6 +76,11 @@ def gen_frames():
 
             face_dir = "Center"
             eye_dir = "Center"
+
+            face_image = frame[top:bottom, left:right]
+            emotion = detect_emotion(face_image)
+            latest_emotion = emotion
+
             try:
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 face_center_x = (left + right) // 2
@@ -83,18 +102,18 @@ def gen_frames():
                         eye_dir = "Right"
                     else:
                         eye_dir = "Center"
-                    break  # Only consider the first detected eye
+                    break
             except Exception as e:
                 print("Error while detecting direction:", e)
 
-            # ✅ Update global variable, not local
             latest_directions["face"] = face_dir
             latest_directions["eye"] = eye_dir
 
             # Draw visuals
             cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
-            cv2.putText(frame, label, (left, top - 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
-            cv2.putText(frame, f"{face_dir}, {eye_dir}", (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+            cv2.putText(frame, label, (left, top - 50), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
+            cv2.putText(frame, f"{face_dir}, {eye_dir}", (left, top - 25), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+            cv2.putText(frame, f"Emotion: {emotion}", (left, top - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
 
         ret, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
@@ -126,3 +145,8 @@ def get_directions(request):
         "face_direction": latest_directions.get("face", "N/A"),
         "eye_direction": latest_directions.get("eye", "N/A")
     })
+
+
+def emotion_view(request):
+    global latest_emotion
+    return JsonResponse({'emotion': latest_emotion})
